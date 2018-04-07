@@ -55,7 +55,7 @@ region_loss = model.loss
 
 model.load_weights(weightfile)
 model.print_network()
-init_epoch = model.seen / nsamples 
+init_epoch = model.seen // nsamples
 
 kwargs = {'num_workers': 8, 'pin_memory': True} if use_cuda else {}
 test_loader = torch.utils.data.DataLoader(

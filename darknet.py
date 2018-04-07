@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 from region_loss import RegionLoss
 from yolo_layer import YoloLayer
-from cfg import *
+import cfg
 #from layers.batchnorm.bn import BN2d
 
 class MaxPoolStride1(nn.Module):
@@ -47,10 +47,10 @@ class Reorg(nn.Module):
         assert(W % stride == 0)
         ws = stride
         hs = stride
-        x = x.view(B, C, H//hs, hs, W//ws, ws).transpose(3,4).contiguous()
-        x = x.view(B, C, H//hs*W//ws, hs*ws).transpose(2,3).contiguous()
-        x = x.view(B, C, hs*ws, H//hs, W//ws).transpose(1,2).contiguous()
-        x = x.view(B, hs*ws*C, H//hs, W//ws)
+        x = x.view(B, C, H/hs, hs, W/ws, ws).transpose(3,4).contiguous()
+        x = x.view(B, C, H/hs*W/ws, hs*ws).transpose(2,3).contiguous()
+        x = x.view(B, C, hs*ws, H/hs, W/ws).transpose(1,2).contiguous()
+        x = x.view(B, hs*ws*C, H/hs, W/ws)
         return x
 
 class GlobalAvgPool2d(nn.Module):
@@ -78,7 +78,7 @@ class EmptyModule(nn.Module):
 class Darknet(nn.Module):
     def __init__(self, cfgfile):
         super(Darknet, self).__init__()
-        self.blocks = parse_cfg(cfgfile)
+        self.blocks = cfg.parse_cfg(cfgfile)
         self.models = self.create_network(self.blocks) # merge conv, bn,leaky
         self.loss = self.models[len(self.models)-1]
 
@@ -150,12 +150,12 @@ class Darknet(nn.Module):
             else:
                 print('unknown type %s' % (block['type']))
         if self.training:
-            return loss
+            return self.loss
         else:
             return out_boxes
 
     def print_network(self):
-        print_cfg(self.blocks)
+        cfg.print_cfg(self.blocks)
 
     def create_network(self, blocks):
         models = nn.ModuleList()
@@ -331,15 +331,15 @@ class Darknet(nn.Module):
                 model = self.models[ind]
                 batch_normalize = int(block['batch_normalize'])
                 if batch_normalize:
-                    start = load_conv_bn(buf, start, model[0], model[1])
+                    start = cfg.load_conv_bn(buf, start, model[0], model[1])
                 else:
-                    start = load_conv(buf, start, model[0])
+                    start = cfg.load_conv(buf, start, model[0])
             elif block['type'] == 'connected':
                 model = self.models[ind]
                 if block['activation'] != 'linear':
-                    start = load_fc(buf, start, model[0])
+                    start = cfg.load_fc(buf, start, model[0])
                 else:
-                    start = load_fc(buf, start, model)
+                    start = cfg.load_fc(buf, start, model)
             elif block['type'] == 'maxpool':
                 pass
             elif block['type'] == 'reorg':
@@ -380,15 +380,15 @@ class Darknet(nn.Module):
                 model = self.models[ind]
                 batch_normalize = int(block['batch_normalize'])
                 if batch_normalize:
-                    save_conv_bn(fp, model[0], model[1])
+                    cfg.save_conv_bn(fp, model[0], model[1])
                 else:
-                    save_conv(fp, model[0])
+                    cfg.save_conv(fp, model[0])
             elif block['type'] == 'connected':
                 model = self.models[ind]
                 if block['activation'] != 'linear':
-                    save_fc(fc, model)
+                    cfg. save_fc(fc, model)
                 else:
-                    save_fc(fc, model[0])
+                    cfg. save_fc(fc, model[0])
             elif block['type'] == 'maxpool':
                 pass
             elif block['type'] == 'reorg':

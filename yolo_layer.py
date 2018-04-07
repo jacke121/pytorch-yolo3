@@ -10,7 +10,7 @@ def build_targets(pred_boxes, target, anchors, num_anchors, num_classes, nH, nW,
     nB = target.size(0)
     nA = num_anchors
     nC = num_classes
-    anchor_step = len(anchors)/num_anchors
+    anchor_step = len(anchors)//num_anchors
     conf_mask  = torch.ones(nB, nA, nH, nW) * noobject_scale
     coord_mask = torch.zeros(nB, nA, nH, nW)
     cls_mask   = torch.zeros(nB, nA, nH, nW)
@@ -23,10 +23,10 @@ def build_targets(pred_boxes, target, anchors, num_anchors, num_classes, nH, nW,
 
     nAnchors = nA*nH*nW
     nPixels  = nH*nW
-    for b in xrange(nB):
+    for b in range(nB):
         cur_pred_boxes = pred_boxes[b*nAnchors:(b+1)*nAnchors].t()
         cur_ious = torch.zeros(nAnchors)
-        for t in xrange(50):
+        for t in range(50):
             if target[b][t*5+1] == 0:
                 break
             gx = target[b][t*5+1]*nW
@@ -49,8 +49,8 @@ def build_targets(pred_boxes, target, anchors, num_anchors, num_classes, nH, nW,
 
     nGT = 0
     nCorrect = 0
-    for b in xrange(nB):
-        for t in xrange(50):
+    for b in range(nB):
+        for t in range(50):
             if target[b][t*5+1] == 0:
                 break
             nGT = nGT + 1
@@ -64,7 +64,7 @@ def build_targets(pred_boxes, target, anchors, num_anchors, num_classes, nH, nW,
             gw = target[b][t*5+3]*nW
             gh = target[b][t*5+4]*nH
             gt_box = [0, 0, gw, gh]
-            for n in xrange(nA):
+            for n in range(nA):
                 aw = anchors[anchor_step*n]
                 ah = anchors[anchor_step*n+1]
                 anchor_box = [0, 0, aw, ah]
@@ -89,8 +89,8 @@ def build_targets(pred_boxes, target, anchors, num_anchors, num_classes, nH, nW,
             conf_mask[b][best_n][gj][gi] = object_scale
             tx[b][best_n][gj][gi] = target[b][t*5+1] * nW - gi
             ty[b][best_n][gj][gi] = target[b][t*5+2] * nH - gj
-            tw[b][best_n][gj][gi] = math.log(gw/anchors[anchor_step*best_n])
-            th[b][best_n][gj][gi] = math.log(gh/anchors[anchor_step*best_n+1])
+            tw[b][best_n][gj][gi] = math.log(gw//anchors[anchor_step*best_n])
+            th[b][best_n][gj][gi] = math.log(gh//anchors[anchor_step*best_n+1])
             iou = bbox_iou(gt_box, pred_box, x1y1x2y2=False) # best_iou
             tconf[b][best_n][gj][gi] = iou
             tcls[b][best_n][gj][gi] = target[b][t*5]
@@ -106,7 +106,7 @@ class YoloLayer(nn.Module):
         self.num_classes = num_classes
         self.anchors = anchors
         self.num_anchors = num_anchors
-        self.anchor_step = len(anchors)/num_anchors
+        self.anchor_step = len(anchors)//num_anchors
         self.coord_scale = 1
         self.noobject_scale = 1
         self.object_scale = 5
@@ -117,6 +117,11 @@ class YoloLayer(nn.Module):
 
     def forward(self, output, target=None):
         if self.training:
+            if output is None:
+                print("yolo output is none")
+                return
+            else:
+                print("yolo output is ok")
             #output : BxAs*(4+1+num_classes)*H*W
             t0 = time.time()
             nB = output.data.size(0)
@@ -189,6 +194,6 @@ class YoloLayer(nn.Module):
             masked_anchors = []
             for m in self.anchor_mask:
                 masked_anchors += self.anchors[m*self.anchor_step:(m+1)*self.anchor_step]
-            masked_anchors = [anchor/self.stride for anchor in masked_anchors]
+            masked_anchors = [anchor//self.stride for anchor in masked_anchors]
             boxes = get_region_boxes(output.data, self.thresh, self.num_classes, masked_anchors, len(self.anchor_mask))
             return boxes

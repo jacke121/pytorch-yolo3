@@ -51,7 +51,7 @@ def bbox_iou(box1, box2, x1y1x2y2=True):
     area2 = w2 * h2
     carea = cw * ch
     uarea = area1 + area2 - carea
-    return carea/uarea
+    return carea//uarea
 
 def bbox_ious(boxes1, boxes2, x1y1x2y2=True):
     if x1y1x2y2:
@@ -139,7 +139,7 @@ def get_region_boxes(output, conf_thresh, num_classes, anchors, num_anchors, onl
     det_confs = torch.sigmoid(output[4])
 
     cls_confs = torch.nn.Softmax()(Variable(output[5:5+num_classes].transpose(0,1))).data
-    cls_max_confs, cls_max_ids = torch.max(cls_confs, 1)
+    cls_max_confs, cls_max_ids = torch.max(cls_confs, dim=1)
     cls_max_confs = cls_max_confs.view(-1)
     cls_max_ids = cls_max_ids.view(-1)
     t1 = time.time()
@@ -250,10 +250,10 @@ def plot_boxes(img, boxes, savename=None, class_names=None):
     draw = ImageDraw.Draw(img)
     for i in range(len(boxes)):
         box = boxes[i]
-        x1 = (box[0] - box[2]//2.0) * width
-        y1 = (box[1] - box[3]//2.0) * height
-        x2 = (box[0] + box[2]//2.0) * width
-        y2 = (box[1] + box[3]//2.0) * height
+        x1 = (box[0] - box[2]/2.0) * width
+        y1 = (box[1] - box[3]/2.0) * height
+        x2 = (box[0] + box[2]/2.0) * width
+        y2 = (box[1] + box[3]/2.0) * height
 
         rgb = (255, 0, 0)
         if len(box) >= 7 and class_names:
@@ -278,7 +278,7 @@ def read_truths(lab_path):
         return np.array([])
     if os.path.getsize(lab_path):
         truths = np.loadtxt(lab_path)
-        truths = truths.reshape(truths.size/5, 5) # to avoid single truth problem
+        truths = truths.reshape(truths.size//5, 5) # to avoid single truth problem
         return truths
     else:
         return np.array([])
@@ -320,7 +320,7 @@ def do_detect(model, img, conf_thresh, nms_thresh, use_cuda=1):
         img = torch.ByteTensor(torch.ByteStorage.from_buffer(img.tobytes()))
         img = img.view(height, width, 3).transpose(0,1).transpose(0,2).contiguous()
         img = img.view(1, 3, height, width)
-        img = img.float().div(255.0)
+        img = img.float()#.div(255.0)
     elif type(img) == np.ndarray: # cv2 image
         img = torch.from_numpy(img.transpose(2,0,1)).float().div(255.0).unsqueeze(0)
     else:
@@ -335,13 +335,14 @@ def do_detect(model, img, conf_thresh, nms_thresh, use_cuda=1):
     t2 = time.time()
 
     list_boxes = model(img)
+    print(list_boxes)
     boxes = list_boxes[0][0] + list_boxes[1][0] + list_boxes[2][0]
     t3 = time.time()
 
     boxes = nms(boxes, nms_thresh)
     t4 = time.time()
 
-    if False:
+    if 1:
         print('-----------------------------------')
         print(' image to tensor : %f' % (t1 - t0))
         print('  tensor to cuda : %f' % (t2 - t1))
@@ -380,7 +381,7 @@ def scale_bboxes(bboxes, width, height):
       
 def file_lines(thefilepath):
     count = 0
-    thefile = open(thefilepath, 'rb')
+    thefile = open(thefilepath, 'r')
     while True:
         buffer = thefile.read(8192*1024)
         if not buffer:

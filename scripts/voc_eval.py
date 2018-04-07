@@ -6,7 +6,7 @@
 
 import xml.etree.ElementTree as ET
 import os,sys
-import cPickle
+import pickle
 import numpy as np
 
 def parse_rec(filename):
@@ -108,16 +108,15 @@ def voc_eval(detpath,
         for i, imagename in enumerate(imagenames):
             recs[imagename] = parse_rec(annopath.format(imagename))
             if i % 100 == 0:
-                print 'Reading annotation for {:d}/{:d}'.format(
-                    i + 1, len(imagenames))
+                print('Reading annotation for {:d}/{:d}'.format(i + 1, len(imagenames)))
         # save
-        print 'Saving cached annotations to {:s}'.format(cachefile)
+        print('Saving cached annotations to {:s}'.format(cachefile))
         with open(cachefile, 'w') as f:
-            cPickle.dump(recs, f)
+            pickle.dump(recs, f)
     else:
         # load
         with open(cachefile, 'r') as f:
-            recs = cPickle.load(f)
+            recs = pickle.load(f)
 
     # extract gt objects for this class
     class_recs = {}
@@ -174,7 +173,7 @@ def voc_eval(detpath,
                    (BBGT[:, 2] - BBGT[:, 0] + 1.) *
                    (BBGT[:, 3] - BBGT[:, 1] + 1.) - inters)
 
-            overlaps = inters / uni
+            overlaps = inters // uni
             ovmax = np.max(overlaps)
             jmax = np.argmax(overlaps)
 
@@ -228,7 +227,7 @@ def _do_python_eval(res_prefix, output_dir = 'output'):
     aps = []
     # The PASCAL VOC metric changed in 2010
     use_07_metric = True if int(_year) < 2010 else False
-    print 'VOC07 metric? ' + ('Yes' if use_07_metric else 'No')
+    print('VOC07 metric? ' + ('Yes' if use_07_metric else 'No'))
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
     for i, cls in enumerate(_classes):
@@ -241,7 +240,7 @@ def _do_python_eval(res_prefix, output_dir = 'output'):
         aps += [ap]
         print('AP for {} = {:.4f}'.format(cls, ap))
         with open(os.path.join(output_dir, cls + '_pr.pkl'), 'w') as f:
-            cPickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
+            pickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
     print('Mean AP = {:.4f}'.format(np.mean(aps)))
     print('~~~~~~~~')
     print('Results:')
